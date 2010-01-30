@@ -1,0 +1,44 @@
+diff -rupN a/libtransmission/peer-mgr.c b/libtransmission/peer-mgr.c
+--- a/libtransmission/peer-mgr.c	2010-01-28 20:01:32.000000000 -0500
++++ b/libtransmission/peer-mgr.c	2010-01-30 17:01:33.000000000 -0500
+@@ -37,6 +37,8 @@
+ #include "utils.h"
+ #include "webseed.h"
+ 
++int64_t hack_upload_multiplier = 1;
++
+ enum
+ {
+     /* how frequently to cull old atoms */
+@@ -1306,13 +1308,13 @@ peerCallbackFunc( void * vpeer, void * v
+             tr_torrentSetActivityDate( tor, now );
+ 
+             if( e->wasPieceData ) {
+-                tor->uploadedCur += e->length;
++                tor->uploadedCur += (e->length * hack_upload_multiplier);
+                 tr_torrentSetDirty( tor );
+             }
+ 
+             /* update the stats */
+             if( e->wasPieceData )
+-                tr_statsAddUploaded( tor->session, e->length );
++                tr_statsAddUploaded( tor->session, (e->length * hack_upload_multiplier) );
+ 
+             /* update our atom */
+             if( peer && e->wasPieceData )
+diff -rupN a/libtransmission/session.c b/libtransmission/session.c
+--- a/libtransmission/session.c	2010-01-28 20:01:32.000000000 -0500
++++ b/libtransmission/session.c	2010-01-30 17:01:30.000000000 -0500
+@@ -537,6 +537,12 @@ tr_sessionInit( const char  * tag,
+     if( tr_bencDictFindInt( clientSettings, TR_PREFS_KEY_MSGLEVEL, &i ) )
+         tr_setMessageLevel( i );
+ 
++    if (tr_bencDictFindInt( clientSettings, "hack-upload-multiplier", &i)) {
++      extern int64_t hack_upload_multiplier;
++      hack_upload_multiplier = i;
++      printf("hack-upload-multiplier: %lld\n", i);
++    }
++
+     /* start the libtransmission thread */
+     tr_netInit( ); /* must go before tr_eventInit */
+     tr_eventInit( session );
